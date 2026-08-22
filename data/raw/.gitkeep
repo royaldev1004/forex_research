@@ -1,0 +1,3 @@
+# Keeps this directory present after clone. The client's raw MT5 exports go
+# here and are git-ignored; without this file git would not create the
+# directory and the Day 1 run would fail with a confusing missing-path error.

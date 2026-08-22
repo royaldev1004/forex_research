@@ -1,0 +1,8 @@
+# Day 1 research foundation dependencies.
+# Deliberately minimal: no ML, plotting or backtesting frameworks are needed
+# to build the dataset, and none are installed.
+pandas>=2.2
+numpy>=1.26
+pyarrow>=14.0      # Parquet writing
+PyYAML>=6.0        # configuration
+pytest>=8.0        # quality-control test suite

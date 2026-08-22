@@ -1,0 +1,49 @@
+# --- secrets: never commit -------------------------------------------
+.env
+.env.*
+*.key
+*.pem
+*.p12
+credentials*.json
+secrets*.yaml
+secrets*.yml
+mt5_login*
+broker_*.ini
+*.mt5cfg
+
+# --- derived research artefacts (regenerate with the Day 1 command) ---
+output/
+*.parquet
+!configs/**/*.parquet
+
+# --- raw market data --------------------------------------------------
+# Vendor bar/tick exports are large and are supplied by the client, not
+# versioned here. Keep them in data/raw/ locally.
+data/raw/*.csv
+data/raw/*.tsv
+
+# Tick exports are multi-gigabyte. The rules above only cover data/raw/, so
+# these catch a tick file dropped anywhere in the tree - including the project
+# root, where a 4.7 GB export has landed before.
+tick-data*.csv
+tick-data*.tsv
+*_ticks.csv
+*ticks*.csv
+*.csv.gz
+*.csv.zip
+
+# --- python -----------------------------------------------------------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+.ipynb_checkpoints/
+
+# --- os ---------------------------------------------------------------
+Thumbs.db
+.DS_Store
+desktop.ini

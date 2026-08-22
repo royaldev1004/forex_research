@@ -1,0 +1,68 @@
+//@version=5
+indicator("Historical HA EMAs & MAs", overlay=true)
+
+// =====================================================================
+// 1. DATA FETCHING: HEIKIN ASHI & IGNORING LIVE CANDLE
+// =====================================================================
+
+// Fetch the Heikin Ashi ticker for the current chart's symbol
+ha_ticker = ticker.heikinashi(syminfo.tickerid)
+
+// Request the Heikin Ashi close prices
+ha_close = request.security(ha_ticker, timeframe.period, close)
+
+// Shift the source by 1 bar to strictly use historical candles
+// This completely ignores the current live/forming candle
+src = ha_close[1]
+
+
+// =====================================================================
+// 2. EMA PLOTS (Evenly distributed 1 to 300) - All Blue
+// =====================================================================
+
+plot(ta.ema(src, 1),   title="EMA 1",   color=color.blue)
+plot(ta.ema(src, 17),  title="EMA 17",  color=color.blue)
+plot(ta.ema(src, 32),  title="EMA 32",  color=color.blue)
+plot(ta.ema(src, 48),  title="EMA 48",  color=color.blue)
+plot(ta.ema(src, 64),  title="EMA 64",  color=color.blue)
+plot(ta.ema(src, 80),  title="EMA 80",  color=color.blue)
+plot(ta.ema(src, 95),  title="EMA 95",  color=color.blue)
+plot(ta.ema(src, 111), title="EMA 111", color=color.blue)
+plot(ta.ema(src, 127), title="EMA 127", color=color.blue)
+plot(ta.ema(src, 143), title="EMA 143", color=color.blue)
+plot(ta.ema(src, 158), title="EMA 158", color=color.blue)
+plot(ta.ema(src, 174), title="EMA 174", color=color.blue)
+plot(ta.ema(src, 190), title="EMA 190", color=color.blue)
+plot(ta.ema(src, 206), title="EMA 206", color=color.blue)
+plot(ta.ema(src, 221), title="EMA 221", color=color.blue)
+plot(ta.ema(src, 237), title="EMA 237", color=color.blue)
+plot(ta.ema(src, 253), title="EMA 253", color=color.blue)
+plot(ta.ema(src, 269), title="EMA 269", color=color.blue)
+plot(ta.ema(src, 284), title="EMA 284", color=color.blue)
+plot(ta.ema(src, 300), title="EMA 300", color=color.blue)
+
+
+// =====================================================================
+// 3. SMA PLOTS (Evenly distributed 1 to 300) - All Green
+// =====================================================================
+
+plot(ta.sma(src, 1),   title="SMA 1",   color=color.green)
+plot(ta.sma(src, 17),  title="SMA 17",  color=color.green)
+plot(ta.sma(src, 32),  title="SMA 32",  color=color.green)
+plot(ta.sma(src, 48),  title="SMA 48",  color=color.green)
+plot(ta.sma(src, 64),  title="SMA 64",  color=color.green)
+plot(ta.sma(src, 80),  title="SMA 80",  color=color.green)
+plot(ta.sma(src, 95),  title="SMA 95",  color=color.green)
+plot(ta.sma(src, 111), title="SMA 111", color=color.green)
+plot(ta.sma(src, 127), title="SMA 127", color=color.green)
+plot(ta.sma(src, 143), title="SMA 143", color=color.green)
+plot(ta.sma(src, 158), title="SMA 158", color=color.green)
+plot(ta.sma(src, 174), title="SMA 174", color=color.green)
+plot(ta.sma(src, 190), title="SMA 190", color=color.green)
+plot(ta.sma(src, 206), title="SMA 206", color=color.green)
+plot(ta.sma(src, 221), title="SMA 221", color=color.green)
+plot(ta.sma(src, 237), title="SMA 237", color=color.green)
+plot(ta.sma(src, 253), title="SMA 253", color=color.green)
+plot(ta.sma(src, 269), title="SMA 269", color=color.green)
+plot(ta.sma(src, 284), title="SMA 284", color=color.green)
+plot(ta.sma(src, 300), title="SMA 300", color=color.green)

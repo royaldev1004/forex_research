@@ -1,0 +1,84 @@
+//@version=5
+indicator("HTF Historical HA EMAs & MAs", overlay=true)
+
+// =====================================================================
+// 1. TIMEFRAME INPUT
+// =====================================================================
+// Allows you to place this on a 1m or 5m chart and pull 15m or 1h data.
+// Default is set to 15 minutes. Add the script to your chart a second
+// time and change this setting to "60" for the 1-hour lines.
+htf = input.timeframe("15", title="Higher Timeframe")
+
+// =====================================================================
+// 2. DATA FETCHING: HEIKIN ASHI & HTF CALCULATIONS
+// =====================================================================
+// We calculate the EMAs and SMAs INSIDE a function so they are processed 
+// accurately as Higher Timeframe moving averages before hitting your chart.
+
+f_emas() =>
+    // Shift by 1 bar strictly on the HTF to ignore the live/forming HTF candle
+    src = close[1]
+    [ta.ema(src, 1), ta.ema(src, 17), ta.ema(src, 32), ta.ema(src, 48), ta.ema(src, 64), ta.ema(src, 80), ta.ema(src, 95), ta.ema(src, 111), ta.ema(src, 127), ta.ema(src, 143), ta.ema(src, 158), ta.ema(src, 174), ta.ema(src, 190), ta.ema(src, 206), ta.ema(src, 221), ta.ema(src, 237), ta.ema(src, 253), ta.ema(src, 269), ta.ema(src, 284), ta.ema(src, 300)]
+
+f_smas() =>
+    src = close[1]
+    [ta.sma(src, 1), ta.sma(src, 17), ta.sma(src, 32), ta.sma(src, 48), ta.sma(src, 64), ta.sma(src, 80), ta.sma(src, 95), ta.sma(src, 111), ta.sma(src, 127), ta.sma(src, 143), ta.sma(src, 158), ta.sma(src, 174), ta.sma(src, 190), ta.sma(src, 206), ta.sma(src, 221), ta.sma(src, 237), ta.sma(src, 253), ta.sma(src, 269), ta.sma(src, 284), ta.sma(src, 300)]
+
+// Fetch the Heikin Ashi ticker for the current chart's symbol
+ha_ticker = ticker.heikinashi(syminfo.tickerid)
+
+// Request the calculated arrays from the Higher Timeframe
+[e1, e17, e32, e48, e64, e80, e95, e111, e127, e143, e158, e174, e190, e206, e221, e237, e253, e269, e284, e300] = request.security(ha_ticker, htf, f_emas())
+[s1, s17, s32, s48, s64, s80, s95, s111, s127, s143, s158, s174, s190, s206, s221, s237, s253, s269, s284, s300] = request.security(ha_ticker, htf, f_smas())
+
+
+// =====================================================================
+// 3. EMA PLOTS (All Yellow)
+// =====================================================================
+
+plot(e1,   title="EMA 1",   color=color.yellow)
+plot(e17,  title="EMA 17",  color=color.yellow)
+plot(e32,  title="EMA 32",  color=color.yellow)
+plot(e48,  title="EMA 48",  color=color.yellow)
+plot(e64,  title="EMA 64",  color=color.yellow)
+plot(e80,  title="EMA 80",  color=color.yellow)
+plot(e95,  title="EMA 95",  color=color.yellow)
+plot(e111, title="EMA 111", color=color.yellow)
+plot(e127, title="EMA 127", color=color.yellow)
+plot(e143, title="EMA 143", color=color.yellow)
+plot(e158, title="EMA 158", color=color.yellow)
+plot(e174, title="EMA 174", color=color.yellow)
+plot(e190, title="EMA 190", color=color.yellow)
+plot(e206, title="EMA 206", color=color.yellow)
+plot(e221, title="EMA 221", color=color.yellow)
+plot(e237, title="EMA 237", color=color.yellow)
+plot(e253, title="EMA 253", color=color.yellow)
+plot(e269, title="EMA 269", color=color.yellow)
+plot(e284, title="EMA 284", color=color.yellow)
+plot(e300, title="EMA 300", color=color.yellow)
+
+
+// =====================================================================
+// 4. SMA PLOTS (All Yellow)
+// =====================================================================
+
+plot(s1,   title="SMA 1",   color=color.yellow)
+plot(s17,  title="SMA 17",  color=color.yellow)
+plot(s32,  title="SMA 32",  color=color.yellow)
+plot(s48,  title="SMA 48",  color=color.yellow)
+plot(s64,  title="SMA 64",  color=color.yellow)
+plot(s80,  title="SMA 80",  color=color.yellow)
+plot(s95,  title="SMA 95",  color=color.yellow)
+plot(s111, title="SMA 111", color=color.yellow)
+plot(s127, title="SMA 127", color=color.yellow)
+plot(s143, title="SMA 143", color=color.yellow)
+plot(s158, title="SMA 158", color=color.yellow)
+plot(s174, title="SMA 174", color=color.yellow)
+plot(s190, title="SMA 190", color=color.yellow)
+plot(s206, title="SMA 206", color=color.yellow)
+plot(s221, title="SMA 221", color=color.yellow)
+plot(s237, title="SMA 237", color=color.yellow)
+plot(s253, title="SMA 253", color=color.yellow)
+plot(s269, title="SMA 269", color=color.yellow)
+plot(s284, title="SMA 284", color=color.yellow)
+plot(s300, title="SMA 300", color=color.yellow)

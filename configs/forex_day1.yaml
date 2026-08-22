@@ -1,0 +1,275 @@
+﻿# =====================================================================
+# Day 1 research configuration - EUR/USD multi-timeframe EMA/MA study
+# =====================================================================
+# Every parameter that affects the dataset lives here. No period, timeframe,
+# threshold or horizon is hard-coded anywhere in forex_research/.
+#
+# Provisional research parameters are labelled as such. They are starting
+# points for measurement, NOT optimised values, and no claim is made that any
+# of them is predictive.
+
+symbol: EURUSD
+
+# --- units -------------------------------------------------------------
+# EUR/USD on a 5-digit MT5 feed: 1 pip = 0.0001, 1 point = 0.00001.
+pip_size: 0.0001
+point_size: 0.00001
+
+# --- data sources ------------------------------------------------------
+# Paths are resolved relative to this file. Source files are read only and
+# are never modified; derived data goes to output_dir.
+sources:
+  - path: ../data/raw/EURUSD_M5.csv
+    timeframe: 5m
+    role: base
+    format: mt5_tsv
+  - path: ../data/raw/EURUSD_M1.csv
+    timeframe: 1m
+    role: reference        # used to prove timestamp semantics; not a feature source
+    format: mt5_tsv
+
+# Timestamps label the bar OPEN. Established empirically, not assumed:
+# aggregating M1 into 5-minute bins with left labelling reproduces the M5 file
+# exactly (100% of complete bins) while right labelling matches 0.01%.
+timestamp_semantics: bar_open
+
+# The file clock is New York wall time + 7 hours (UTC+3 while New York is on
+# EDT, UTC+2 otherwise) - the conventional MT5 broker server clock. Evidence:
+# every weekly session opens Monday 00:00 and closes Friday 23:55 in file-native
+# time, including inside the windows where the US and EU DST calendars disagree.
+# Bars are constructed on this clock because MT5/TradingView define H4 and D1
+# against it; UTC columns are derived alongside for unambiguous reporting.
+source_timezone_mode: new_york_plus_7
+source_timezone_note: >-
+  Inferred from weekly session boundaries across three DST regimes. Should be
+  confirmed against the broker's documented server timezone before any
+  live-execution work.
+
+# --- timeframes --------------------------------------------------------
+# 5m is the decision/observation timeline: it is the finest series with full
+# historical coverage in the supplied data.
+base_timeframe: 5m
+timeframes:
+  - 5m
+  - 15m
+  - 1h
+  - 4h
+  - 1D
+
+# Daily is OFF by default. With the authoritative 300-period maximum, the 1D
+# series needs 300+ daily bars of warm-up but the supplied history contains
+# only ~350 trading days, which would leave almost no usable rows AND would
+# truncate every other timeframe to that same short window. Enable only when
+# several more years of history are supplied.
+include_daily: false
+
+# NOTE: no LTF/HTF pairing is privileged. Which combination matters is a
+# research question for Day 2, answered from the cross_tf_* features.
+
+# --- indicator set -----------------------------------------------------
+# AUTHORITATIVE period list, taken verbatim from the client's two reference
+# indicator scripts (reference/pine/historical_ha_ema_ma_LTF.pine.txt and
+# ..._HTF.pine.txt): 20 EMAs + 20 SMAs, "evenly distributed 1 to 300".
+# This list is NOT invented by the pipeline. Changing it changes the study.
+ema_periods: [1, 17, 32, 48, 64, 80, 95, 111, 127, 143, 158, 174, 190, 206, 221, 237, 253, 269, 284, 300]
+sma_periods: [1, 17, 32, 48, 64, 80, 95, 111, 127, 143, 158, 174, 190, 206, 221, 237, 253, 269, 284, 300]
+
+# The client specification computes indicators from Heikin Ashi closes.
+price_basis: heikin_ashi
+
+# Indicator timing. See output/day1/INDICATOR_TIMING_NOTE.md for the full audit.
+#
+#   latest_closed   (default) the newest FULLY CLOSED candle at the decision time
+#                   contributes. Point-in-time alignment already excludes the
+#                   forming bar by matching on bar_close_time <= decision_time.
+#   previous_closed additionally drops the aligned bar, reproducing the literal
+#                   `src = ha_close[1]` of the reference Pine scripts.
+#
+# The reference scripts write `src = ha_close[1]`, but in Pine that offset exists
+# to exclude the FORMING bar - a job this pipeline already does structurally via
+# close-time alignment. Applying both excludes the forming bar twice and discards
+# a candle that was genuinely available, adding one whole bar of avoidable
+# staleness (240 minutes on 4h). Both modes are point-in-time safe; only
+# staleness differs. `latest_closed` is the Day 2 research default because the
+# governing question is what was objectively available at the decision timestamp.
+indicator_source_mode: latest_closed
+
+# ATR is computed on STANDARD (real) ranges even when indicators use Heikin
+# Ashi, because it normalises features by actual market volatility.
+atr_period: 14
+atr_price_basis: standard
+
+# --- feature parameters (PROVISIONAL - configurable, not optimised) -----
+slope_lookbacks: [1, 3, 5]
+primary_slope_lookback: 3
+
+consolidation_windows: [6, 12, 24]
+crossover_windows: [6, 24]
+dispersion_change_lookback: 6
+
+# Two averages are "entangled" when separated by less than this fraction of ATR.
+entanglement_atr_fraction: 0.10
+
+# Compression percentiles are ranked inside a TRAILING window only. A
+# whole-sample percentile would leak the future volatility distribution into
+# every historical row.
+compression_percentile_lookback: 1000
+compression_percentile_threshold: 0.25
+
+# |EMA ordering score| at or above this counts as a strongly ordered stack.
+trend_ordering_threshold: 0.5
+
+# --- cross-timeframe ---------------------------------------------------
+# same_period    : compare EMA(p)/SMA(p) across timeframes (Day 1 default)
+# selected_pairs : only the timeframe pairs listed below
+# all_pairs      : every LTF indicator against every HTF indicator
+#
+# all_pairs is implemented but off by default: with 40 indicators per timeframe
+# it produces 40x40 comparisons per timeframe pair. The long-form indicator
+# panel is exported regardless, so an all-pairs view can be reconstructed later
+# without recomputing indicators.
+cross_tf_mode: same_period
+cross_tf_selected_pairs: []
+
+cross_tf_per_indicator_features:
+  - value_dist_pips
+  - value_dist_atr
+  - slope_diff_atr
+
+wide_per_indicator_features:
+  - dist_pips
+  - dist_atr
+  - slope_atr
+
+# --- future outcomes (labels, kept separate from features) --------------
+forward_horizons_minutes: [15, 30, 60, 120, 240]
+expansion_thresholds_pips: [20, 30, 50]
+
+# Outcomes always use standard executable prices, never Heikin Ashi.
+outcome_price_basis: standard
+outcome_entry_reference: decision_bar_close
+
+# --- run ----------------------------------------------------------------
+# production: refuses to run without an explicit EMA/SMA period list.
+# smoke     : permits toy period lists for non-research smoke tests only.
+research_mode: production
+
+output_dir: ../output/day1
+write_full_datasets: true
+chunk_rows: 20000
+sample_rows: 5000
+random_seed: 20260821
+log_level: INFO
+
+
+# =====================================================================
+# Step 2 - focused event / control dataset
+# =====================================================================
+# These are RESEARCH STRATA, predeclared before outcomes were inspected.
+# They were not chosen by looking at which produced the nicest result.
+step2:
+  directions: [up, down]
+  thresholds_pips: [20, 30, 50]
+
+  # 60/120/240 only. 15m and 30m outcomes remain available in the Day 1
+  # dataset, but at 20+ pips they yield too few episodes to describe.
+  horizons_minutes: [60, 120, 240]
+
+  # Canonical timestamp = EARLIEST qualifying row in the episode. Choosing a
+  # "better" row inside the episode by inspecting the future path would leak
+  # outcome information into event selection, so no other rule is implemented.
+  canonical_rule: earliest_qualifying
+
+  # horizon      : suppress candidates within [canonical, canonical + horizon].
+  #                Uses no future information at all.
+  # to_threshold : suppress until the threshold was actually reached (tighter,
+  #                but sizes the window from the future path).
+  suppression_rule: horizon
+  extra_separation_minutes: 0
+
+  # Eligibility, applied before any event label is consulted.
+  require_source_quality: true       # aligned HTF bars must be complete
+  require_complete_horizon: true
+  require_observed_bars: true
+  exclude_ambiguous_first_touch: false   # kept; flagged rather than dropped
+
+  # Consolidation context, from a Day 1 TRAILING-ONLY percentile.
+  compression_primary_column: 5m__compression_percentile_12
+  compression_compressed_max_percentile: 0.25
+  compression_expanding_min_percentile: 0.75
+  compression_min_consecutive_bars: 1
+  # Thin dense compressed stretches so one quiet afternoon cannot dominate.
+  consolidation_episode_separation_minutes: 240
+
+  # Controls
+  controls_per_event: 3
+  random_controls_per_event: 3
+  control_purge_minutes: 240
+  match_on_session: true
+  match_on_hour_bucket: true
+  match_on_day_of_week: false
+  volatility_column: 5m__atr_pips
+  volatility_bins: 4
+  hour_bucket_hours: 4
+  random_seed: 20260821
+
+  output_dir: ../output/step2
+
+
+# =====================================================================
+# Step 3A - descriptive future outcomes for those populations
+# =====================================================================
+step3a:
+  report_horizons_minutes: [60, 120, 240]
+  report_thresholds_pips: [20, 30, 50]
+  distribution_quantiles: [0.1, 0.25, 0.5, 0.75, 0.9]
+  output_dir: ../output/step3a
+
+
+# =====================================================================
+# Two-day client checkpoint
+# =====================================================================
+# PREDECLARED. Every choice below is fixed before the benchmark is run and
+# is echoed into DAY2_BENCHMARK_PLAN.md, which is written before any result
+# table is generated. Do not edit after seeing outcomes.
+day2_checkpoint:
+
+  # --- endpoints ------------------------------------------------------
+  # Primary research endpoint. NOT a trading target and NOT a claim that
+  # this is the best threshold/horizon.
+  primary_threshold_pips: 30
+  primary_horizon_minutes: 240
+
+  # Sensitivity only. A secondary endpoint is never promoted just because
+  # it looks stronger.
+  secondary_endpoints:
+    - {threshold_pips: 20, horizon_minutes: 120}
+    - {threshold_pips: 20, horizon_minutes: 240}
+    - {threshold_pips: 50, horizon_minutes: 240}
+
+  # --- benchmark state definitions (Day 1 features only) --------------
+  # No state may reference a future outcome column.
+  state_timeframe: 5m
+  compression_column: 5m__is_compressed_12
+  crossover_direction_column: 5m__ema_cross_net_direction
+  htf_alignment_timeframe: 4h
+  htf_alignment_column: 4h__ema_ordering_score
+  htf_alignment_min_abs_ordering: 0.5
+
+  # --- crossover counting ---------------------------------------------
+  crossover_timeframes: [5m, 15m, 1h, 4h]
+  crossover_indicator_families: [ema, sma, ema_vs_sma]
+  # Consecutive cross-bearing timestamps within this many bars of the
+  # timeframe are grouped into one crossover episode.
+  crossover_episode_gap_bars: 12
+
+  # --- controls --------------------------------------------------------
+  # Risk-set controls are NOT purged and are NOT filtered on their future.
+  # A control that later expands is valid: expansion is the label.
+  risk_set_controls_per_event: 3
+  random_context_controls: 20000
+  volatility_bins: 4
+  hour_bucket_hours: 4
+  random_seed: 20260821
+
+  output_dir: ../output/day2_checkpoint
